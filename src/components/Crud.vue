@@ -154,9 +154,9 @@
         }
       },
       relations: {
-        type: Array,
+        type: Object,
         default () {
-          return []
+          return {}
         }
       }
     },

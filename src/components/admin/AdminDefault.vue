@@ -72,7 +72,9 @@
           { icon: 'school', push: 'setting-semester', title: 'Setting Semester' },
           { icon: 'school', push: 'program-studi', title: 'Program Studi' },
           { icon: 'school', push: 'jenjang', title: 'Jenjang' },
-          { icon: 'school', push: 'kelas', title: 'Kelas' }
+          { icon: 'school', push: 'kelas', title: 'Kelas' },
+          { icon: 'school', push: 'generate-jadwal', title: 'Generate Jadwal' },
+          { icon: 'school', push: 'notifikasi-jadwal', title: 'Notifikasi Jadwal' }
         ],
         title: 'Admin'
       }

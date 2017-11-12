@@ -9,7 +9,10 @@ import AdminProgramStudi from '@/components/admin/AdminProgramStudi.vue'
 import AdminJenjang from '@/components/admin/AdminJenjang.vue'
 import AdminKelas from '@/components/admin/AdminKelas.vue'
 import AdminUser from '@/components/admin/AdminUser.vue'
+import AdminGenerateJadwal from '@/components/admin/AdminGenerateJadwal.vue'
+import AdminNotifikasiJadwal from '@/components/admin/AdminNotifikasiJadwal.vue'
 import test from '@/components/admin/test.vue'
+
 import LoginDosen from '@/components/dosen/LoginDosen.vue'
 import DosenDefault from '@/components/dosen/DosenDefault.vue'
 import DosenDashboard from '@/components/dosen/DosenDashboard.vue'
@@ -97,6 +100,16 @@ export default new Router({
           path: 'user',
           name: 'AdminUser',
           component: AdminUser
+        },
+        {
+          path: 'generate-jadwal',
+          name: 'AdminGenerateJadwal',
+          component: AdminGenerateJadwal
+        },
+        {
+          path: 'notifikasi-jadwal',
+          name: 'AdminNotifikasiJadwal',
+          component: AdminNotifikasiJadwal
         },
         {
           path: 'test',
