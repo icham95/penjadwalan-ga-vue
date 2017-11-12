@@ -32,6 +32,9 @@
     </noscript>
     <div id="app"></div>
     <!-- Todo: only include in production -->
+    <script>
+      window.$baseApi = 'http://localhost/project/prodi2/api/api.php'
+    </script>
     <%= htmlWebpackPlugin.options.serviceWorkerLoader %>
     <!-- built files will be auto injected -->
   </body>

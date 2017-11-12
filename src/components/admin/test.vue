@@ -11,7 +11,7 @@
 </template>
 
 <script>
-  import tcrud from '@/components/admin/Crud.vue'
+  import tcrud from '@/components/Crud.vue'
   export default {
     components: {
       tcrud

@@ -1,76 +1,104 @@
 <template>
-  <form>
-    <v-text-field
-      v-model="name"
-      label="Name"
-      :counter="10"
-      :error-messages="errors.collect('names')"
-      v-validate="'required|max:10'"
-      data-vv-name="names"
-      required
-    ></v-text-field>
-    <v-text-field
-      v-model="email"
-      label="E-mail"
-      :error-messages="errors.collect('email')"
-      v-validate="'required|email'"
-      data-vv-name="email"
-      required
-    ></v-text-field>
-    <v-select
-      v-bind:items="items"
-      v-model="select"
-      label="Select"
-      :error-messages="errors.collect('select')"
-      v-validate="'required'"
-      data-vv-name="select"
-      required
-    ></v-select>
-    <v-checkbox
-      v-model="checkbox"
-      value="1"
-      label="Option"
-      :error-messages="errors.collect('checkbox')"
-      v-validate="'required'"
-      data-vv-name="checkbox"
-      type="checkbox"
-      required
-    ></v-checkbox>
+  <div>
+    <div class="page login-page" id="app">
+      <div class="container d-flex align-items-center">
+        <div class="form-holder has-shadow">
+          <div class="row">
+            <!-- Logo & Information Panel-->
+            <div class="col-lg-6">
+              <div class="info d-flex align-items-center">
+                <div class="content">
+                  <div class="logo">
+                    <h1>STIKOM BINANIAGA</h1>
+                  </div>
+                  <p>BOGOR ADMIN</p>
+                </div>
+              </div>
+            </div>
+            <!-- Form Panel    -->
+            <div class="col-lg-6 bg-white">
+              <div class="form d-flex align-items-center">
+                <div class="content" v-if="loading == true">
+                  <i class="fa fa-cog fa-spin fa-5x fa-fw" style="margin:0 auto;"></i>
+                  <span class="sr-only">Loading...</span>
+                  <span style="font-size:24px;" >Loading...</span>
+                </div>
+                <div class="content" v-if="loading == false">
+                  <form id="login-form" method="post" @submit.prevent = "login()">
+                    <div class="form-group">
+                      <input type="text" v-model="form.username" class="form-control" placeholder="Username" name="username">
+                      <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
+                      <span>
+                        <small style="display:block;color:crimson;" v-for="item in usernameErrs">
+                          {{ item }}
+                        </small> 
+                      </span>
+                    </div>
+                    <div class="form-group">
+                      <input type="password" v-model="form.password" class="form-control" placeholder="Password" name="password">
+                      <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+                      <span>
+                        <small style="display:block;color:crimson;" v-for="item in passwordErrs">
+                          {{ item }}
+                        </small> 
+                      </span>
+                      <div class="row">
+                     <!-- /.col -->
+                        <div class="col-xs-4">
+                          <input @click.prevent = "login()" type="submit" class="btn btn-primary btn-block btn-flat" name="login" value="Login">
+                        </div>
 
-    <v-btn @click="submit">submit</v-btn>
-    <v-btn @click="clear">clear</v-btn>
-  </form>
+                      </div>
+                    <!-- /.col -->
+                    </div>
+                    
+                    <!-- This should be submit button but I replaced it with <a> for demo purposes-->
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
   export default {
-    $validates: true,
     data () {
       return {
-        names: '',
-        email: '',
-        select: null,
-        items: [
-          'Item 1',
-          'Item 2',
-          'Item 3',
-          'Item 4'
-        ],
-        checkbox: null
+        usernameErrs: [],
+        passwordErrs: [],
+        loading: false,
+        form: {
+          username: null,
+          password: null
+        }
       }
     },
     methods: {
-      submit () {
-        this.$validator.validateAll()
-      },
-      clear () {
-        this.name = ''
-        this.email = ''
-        this.select = null
-        this.checkbox = null
-        this.$validator.clean()
+      login () {
+        this.$axios.post(this.$baseApi + '?login=true&admin=true', {
+          username: this.form.username,
+          password: this.form.password
+        })
+        .then(resp => {
+          if (resp.data.success === true) {
+            this.$localStorage.set('tokenAdmin', resp.data.token)
+            this.$localStorage.set('user', resp.data.user)
+            this.$localStorage.set('logged', 1)
+            this.$axios.defaults.headers.common['Authorization'] = this.$localStorage.get('tokenAdmin')
+            this.$router.push('/admin/dashboard')
+          } else {
+            this.$swal('Error', 'Username dan password tidak cocok!', 'error')
+          }
+        })
       }
     }
-
   }
 </script>
+
+<style scoped src="./../css/bootstrap.css"></style>
+<style scoped src="./../css/style.default.css"></style>
+<style scoped src="./../css/custom.css"></style>

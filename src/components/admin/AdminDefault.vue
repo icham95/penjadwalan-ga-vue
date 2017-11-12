@@ -9,6 +9,7 @@
     >
       <v-list>
         <v-list-tile
+          style="width:100%;"
           value="true"
           v-for="(item, i) in items"
           :key="i"
@@ -67,13 +68,31 @@
         drawer: true,
         items: [
           { icon: 'home', push: 'dashboard', title: 'Dashboard' },
+          { icon: 'school', push: 'user', title: 'Edit User' },
           { icon: 'school', push: 'setting-semester', title: 'Setting Semester' },
           { icon: 'school', push: 'program-studi', title: 'Program Studi' },
           { icon: 'school', push: 'jenjang', title: 'Jenjang' },
-          { icon: 'school', push: 'kelas', title: 'Kelas' },
-          { icon: 'school', push: 'test', title: 'test' }
+          { icon: 'school', push: 'kelas', title: 'Kelas' }
         ],
         title: 'Admin'
+      }
+    },
+    methods: {
+      logout () {
+        this.$axios.defaults.headers.common['Authorization'] = null
+        this.$localStorage.set('token', null)
+        this.$localStorage.set('logged', 0)
+        this.$router.push('/login/admin')
+      }
+    },
+    mounted () {
+      let logged = this.$localStorage.get('logged')
+      if (logged === 1) {
+        // this.$router.push('/login/admin')
+      } else if (logged === 2) {
+        this.$router.push('/dosen/dashboard')
+      } else {
+        this.$router.push('/')
       }
     }
   }

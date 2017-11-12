@@ -1,19 +1,13 @@
 <template>
   <div>
+    <h5>Total {{paging.total}}</h5>
     <v-card>
       <v-progress-linear v-bind:indeterminate="loading" v-if="loading"></v-progress-linear>
       <table style="position:relative;">
         <div style="position:absolute;top:0;left:0;">
           <v-btn color="primary" icon ripple
-          @click.native.prevent="get((paging.page - 1))">
-            <v-icon color="white">keyboard_arrow_left</v-icon>
-          </v-btn>
-          <v-badge>
-            {{paging.page}}
-          </v-badge>
-          <v-btn color="primary" icon ripple
-          @click.native.prevent="get((paging.page + 1))">
-            <v-icon color="white">keyboard_arrow_right</v-icon>
+          @click.native.prevent="get()">
+            <v-icon color="white">refresh</v-icon>
           </v-btn>
         </div>
         <div style="position:absolute;top:0;right:0;">
@@ -32,11 +26,18 @@
         <tbody>
           <tr v-for="(item, index) in items">
             <td :data-label="headers[indexSub]" v-for="(sub, indexSub) in item.data" v-if="item.edit == false">
-              {{(sub == null ? '-' : sub)}}
+              <a href="" 
+              v-if="haveRelations(headers[indexSub], sub) == true"
+              @click.prevent="showRelation(headers[indexSub], sub)">
+                {{sub}}
+              </a>
+              <span v-else>
+                {{(sub == null ? '-' : sub)}}
+              </span>
             </td>
             <td :data-label="headers[indexSub]" v-for="(sub, indexSub) in item.data" v-if="item.edit" >
               <!-- edit save -->
-              <v-text-field v-if="headers[indexSub] != keyPrimaryId"
+              <v-text-field v-if="headers[indexSub] != keyPrimaryId && editId == false"
               :error-messages="errors.collect(headers[indexSub])"
               v-validate="rules(headers[indexSub])"
               :data-vv-name="headers[indexSub]"
@@ -44,30 +45,41 @@
               :label="headers[indexSub]"
               v-model="item.data[indexSub]">
               </v-text-field>
-              <div v-if="headers[indexSub] == keyPrimaryId" style="color:purple;">
+
+              <v-text-field v-if="editId == true"
+              :error-messages="errors.collect(headers[indexSub])"
+              v-validate="rules(headers[indexSub])"
+              :data-vv-name="headers[indexSub]"
+              required
+              :label="headers[indexSub]"
+              v-model="item.data[indexSub]"
+              :disabled="(headers[indexSub] == keyPrimaryId && item.update == true ? true : false)">
+              </v-text-field>
+
+              <div v-if="headers[indexSub] == keyPrimaryId && editId == false" style="color:purple;">
                 Auto
               </div>
             </td>
             <td data-label="Actions">
               <div v-if="item.edit">
                 <!-- edit update -->
-                <v-btn icon color="teal" small ripple @click.native.prevent="update(item, index)"
-                v-if="item.data[0] != null">
-                  <v-icon color="white"> save </v-icon>
-                </v-btn> 
-                <v-btn icon color="red" small ripple @click.native.prevent="cancelUpdate(item, index)"
-                v-if="item.data[0] != null"> 
-                  <v-icon color="white"> cancel </v-icon>
-                </v-btn> 
+                <div v-if="item.update">
+                  <v-btn icon color="teal" small ripple @click.native.prevent="update(item, index)">
+                    <v-icon color="white"> save </v-icon>
+                  </v-btn> 
+                  <v-btn icon color="red" small ripple @click.native.prevent="cancelUpdate(item, index)"> 
+                    <v-icon color="white"> cancel </v-icon>
+                  </v-btn> 
+                </div>
                 <!-- edit save -->
-                <v-btn icon color="teal" small ripple @click.native.prevent="save(item, index)"
-                v-if="item.data[0] == null">
-                  <v-icon color="white"> save </v-icon>
-                </v-btn> 
-                <v-btn icon color="red" small ripple @click.native.prevent="cancelAdd(index)"
-                v-if="item.data[0] == null"> 
-                  <v-icon color="white"> cancel </v-icon>
-                </v-btn> 
+                <div v-if="item.save">
+                  <v-btn icon color="teal" small ripple @click.native.prevent="save(item, index)">
+                    <v-icon color="white"> save </v-icon>
+                  </v-btn> 
+                  <v-btn icon color="red" small ripple @click.native.prevent="cancelAdd(index)"> 
+                    <v-icon color="white"> cancel </v-icon>
+                  </v-btn> 
+                </div>
               </div>
               <div v-if="item.edit == false">
                 <v-btn icon color="red" small ripple @click.native.prevent="trash(item, index)"> 
@@ -81,34 +93,117 @@
           </tr>
         </tbody>
       </table>
+      <div>
+        <v-btn color="primary" icon ripple
+        @click.native.prevent="prev()">
+          <v-icon color="white">keyboard_arrow_left</v-icon>
+        </v-btn>
+        <v-badge>
+          {{paging.page}} / {{pagingTotalPage}}
+        </v-badge>
+        <v-btn color="primary" icon ripple
+        @click.native.prevent="next()">
+          <v-icon color="white">keyboard_arrow_right</v-icon>
+        </v-btn>
+        Tampilkan 
+        <input type="number" style="width:50px;border:1px solid black;" 
+        v-model="paging.limit" @change.prevent="get()" @keyup.prevent="get()">
+      </div>
     </v-card>
+
+    <v-dialog v-model="dialog" scrollable>
+      <v-card> 
+        <v-card-title>
+          <span>{{relationTitle}}</span>
+          <v-spacer></v-spacer>
+          <v-progress-linear 
+          v-bind:indeterminate="loadingDialog"
+          v-if="loadingDialog">
+          </v-progress-linear>
+        </v-card-title>
+        <v-card-text>
+          <v-list two-line subheader>
+            <v-list-tile avatar v-for="(item, index) in relationData" v-bind:key="item.title">
+              <v-list-tile-content>
+                <v-list-tile-title>{{ index.replace('_', ' ') }}</v-list-tile-title>
+                <v-list-tile-sub-title>{{ item }}</v-list-tile-sub-title>
+              </v-list-tile-content>
+            </v-list-tile>
+          </v-list>
+        </v-card-text>
+      <v-card-actions>
+          <v-btn color="primary" flat @click.stop="dialog=false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script>
   export default {
-    props: [
-      'title',
-      'keyPrimaryId',
-      'apiUrl',
-      'keyData',
-      'ruleValidation'
-    ],
+    props: {
+      title: String,
+      keyPrimaryId: String,
+      apiUrl: String,
+      keyData: String,
+      ruleValidation: Object,
+      editId: {
+        type: Boolean,
+        default () {
+          return false
+        }
+      },
+      relations: {
+        type: Array,
+        default () {
+          return []
+        }
+      }
+    },
     $validates: true,
     data () {
       return {
-        tempFormUpdate: null,
+        dialog: false,
+        loadingDialog: false,
+        relationTitle: null,
+        relationData: [],
         saveForm: false,
         loading: false,
         headers: [],
         items: [],
         paging: {
           page: 1,
-          limit: 5
+          limit: 5,
+          total: 0
         }
       }
     },
     methods: {
+      showRelation (header, item) {
+        let relation = {}
+        for (let index in this.relations) {
+          if (index === header) {
+            this.dialog = true
+            relation = this.relations[index]
+            this.relationTitle = relation.to.table
+            this.$axios.get(relation.to.url + item)
+            .then(resp => {
+              this.relationData = resp.data
+              this.loadingDialog = false
+            })
+            break
+          }
+        }
+        console.log(relation)
+      },
+      haveRelations (header, item) {
+        for (let index in this.relations) {
+          if (index === header) {
+            return true
+          }
+        }
+        return false
+      },
       rules (key) {
         let rule = ''
         for (let index in this.ruleValidation) {
@@ -121,8 +216,9 @@
       add () {
         this.saveForm = true
         let temp = []
-        temp.open = false
         temp.edit = true
+        temp.update = false
+        temp.save = true
         temp.data = []
         for (let i = 0; i < this.headers.length; i++) {
           temp.data[i] = null
@@ -134,12 +230,17 @@
         this.items.splice(index, 1)
       },
       save (item) {
+        console.log(item)
         this.$validator.validateAll()
         .then(resp => {
           if (resp === true) {
             let post = {}
             for (let i = 0; i < this.headers.length; i++) {
-              if (this.headers[i] !== this.keyPrimaryId) {
+              if (this.editId === false) {
+                if (this.headers[i] !== this.keyPrimaryId) {
+                  post[this.headers[i]] = item.data[i]
+                }
+              } else {
                 post[this.headers[i]] = item.data[i]
               }
             }
@@ -151,8 +252,7 @@
                   'Data berhasil di simpan',
                   'success'
                 )
-                item.data[0] = resp.data
-                item.edit = false
+                this.get()
                 this.saveForm = false
               } else {
                 this.$swal(
@@ -171,13 +271,13 @@
       },
       trash (item, index) {
         this.$swal({
-          title: 'Are you sure?',
-          text: "You won't be able to revert this!",
+          title: 'Benar ingin menghapus ?',
+          text: 'Penyesalan ada di akhir!',
           type: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',
           cancelButtonColor: '#d33',
-          confirmButtonText: 'Yes, delete it!',
+          confirmButtonText: 'Ya!',
           showLoaderOnConfirm: true,
           allowOutsideClick: false,
           preConfirm: res => {
@@ -202,6 +302,7 @@
         .catch(this.$swal.noop)
       },
       edit (item, index) {
+        this.items[index].update = true
         this.items[index].edit = true
       },
       update (item, index) {
@@ -211,7 +312,11 @@
             let put = {}
             let id = item.data[0]
             for (let i = 0; i < this.headers.length; i++) {
-              if (this.headers[i] !== this.keyPrimaryId) {
+              if (this.editId === false) {
+                if (this.headers[i] !== this.keyPrimaryId) {
+                  put[this.headers[i]] = item.data[i]
+                }
+              } else {
                 put[this.headers[i]] = item.data[i]
               }
             }
@@ -253,23 +358,23 @@
           this.paging.limit = limit
         }
         let params = {
-          order: this.keyPrimaryId,
+          order: this.keyPrimaryId + ',desc',
           page: `${this.paging.page},${this.paging.limit}`
         }
         this.loading = true
         this.$axios.get(this.apiUrl, {params})
         .then(resp => {
-          console.log(resp)
           let data = resp.data[this.keyData]
           this.headers = data.columns
           let records = []
           for (let i = 0; i < data.records.length; i++) {
             // harus array object biar bisa data binding
             // ga tau kenapa ketika pemasukan nilai nya kayak gini records[i] = [] records[i].open = false
-            // itu dia engga nge binding data
+            // itu dia engga nge two way binding data
             records[i] = {
-              open: false,
               edit: false,
+              update: false,
+              save: false,
               data: data.records[i]
             }
           }
@@ -280,10 +385,38 @@
           console.log(err)
           this.loading = false
         })
+      },
+      getCount () {
+        this.$axios.get(this.apiUrl, {
+          params: {
+            count: this.keyData,
+            countWhat: this.keyPrimaryId
+          }
+        }).then(resp => {
+          this.paging.total = resp.data.count
+        })
+      },
+      next () {
+        if (this.paging.page > 0 && this.paging.page < this.pagingTotalPage) {
+          this.paging.page += 1
+          this.get()
+        }
+      },
+      prev () {
+        if (this.paging.page > 1 && this.paging.page <= this.pagingTotalPage) {
+          this.paging.page -= 1
+          this.get()
+        }
+      }
+    },
+    computed: {
+      pagingTotalPage () {
+        return Math.ceil(this.paging.total / this.paging.limit)
       }
     },
     mounted () {
       this.get()
+      this.getCount()
     }
   }
 </script>
